@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 16
+relay-log = relay-bin
+replicate-do-db = hr_db

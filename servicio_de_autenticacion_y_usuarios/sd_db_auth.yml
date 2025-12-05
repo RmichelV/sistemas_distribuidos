@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  sd_db_auth:
+    image: mysql:8.0
+    container_name: sd_db_auth
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: '3312'
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: rmichelv
+      MYSQL_PASSWORD: usuario123
+    volumes:
+      - sd_db_auth_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+      - ./master.cnf:/etc/mysql/conf.d/master.cnf
+    networks:
+      - sd_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p3312"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sd_db_auth_data:
+    driver: local
+
+networks:
+  sd_network:
+    external: true

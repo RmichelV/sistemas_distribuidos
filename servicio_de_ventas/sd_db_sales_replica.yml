@@ -1,0 +1,28 @@
+services:
+  sd_db_sales_replica:
+    image: mysql:8.0
+    container_name: sd_db_sales_replica
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: '3312'
+      MYSQL_DATABASE: sales_db
+      MYSQL_USER: rmichelv
+      MYSQL_PASSWORD: usuario123
+    volumes:
+      - sd_db_sales_replica_data:/var/lib/mysql
+      - ./replica.cnf:/etc/mysql/conf.d/replica.cnf
+    networks:
+      - sd_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p3312"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sd_db_sales_replica_data:
+    driver: local
+
+networks:
+  sd_network:
+    external: true

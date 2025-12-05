@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 13
+relay-log = relay-bin
+replicate-do-db = inventory_db

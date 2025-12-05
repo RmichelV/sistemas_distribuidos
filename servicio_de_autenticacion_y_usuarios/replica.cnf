@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 11
+relay-log = relay-bin
+replicate-do-db = auth_db

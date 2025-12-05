@@ -1,0 +1,7 @@
+[mysqld]
+server-id = 1
+log_bin = mysql-bin
+binlog_do_db = auth_db
+binlog_format = ROW
+max_binlog_size = 100M
+expire_logs_days = 7

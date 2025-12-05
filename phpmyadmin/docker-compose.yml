@@ -1,0 +1,21 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      # Permitir conexión a cualquier servidor MySQL
+      PMA_ARBITRARY: 1
+      
+      # Configuración adicional
+      UPLOAD_LIMIT: 300M
+      MEMORY_LIMIT: 512M
+      MAX_EXECUTION_TIME: 600
+    ports:
+      - "8080:80"
+    networks:
+      - sd_network
+
+networks:
+  sd_network:
+    external: true

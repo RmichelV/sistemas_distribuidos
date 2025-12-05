@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 12
+relay-log = relay-bin
+replicate-do-db = branches_db

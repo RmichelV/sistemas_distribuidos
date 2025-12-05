@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 15
+relay-log = relay-bin
+replicate-do-db = reservations_db

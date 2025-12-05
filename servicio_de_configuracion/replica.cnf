@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 17
+relay-log = relay-bin
+replicate-do-db = config_db

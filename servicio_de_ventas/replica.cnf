@@ -1,0 +1,4 @@
+[mysqld]
+server-id = 14
+relay-log = relay-bin
+replicate-do-db = sales_db
