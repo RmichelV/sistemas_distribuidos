@@ -137,6 +137,9 @@ docker compose build
 docker compose up -d
 docker exec inventory_api composer install --no-dev --optimize-autoloader
 docker exec inventory_api php artisan key:generate
+
+docker exec inventory_api grep "^APP_KEY=" .env
+
 docker exec inventory_api php artisan migrate --force
 docker exec inventory_api php artisan db:seed --force
 cd ..
@@ -157,6 +160,9 @@ docker compose build
 docker compose up -d
 docker exec sales_api composer install --no-dev --optimize-autoloader
 docker exec sales_api php artisan key:generate
+
+docker exec sales_api grep "^APP_KEY=" .env
+
 docker exec sales_api php artisan migrate --force
 docker exec sales_api php artisan db:seed --force
 cd ..
