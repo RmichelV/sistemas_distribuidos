@@ -484,8 +484,10 @@ class ComposerStaticInit238758776cef75e40b61f11e6f2e00e2
     );
 
     public static $classMap = array (
+        'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\GatewayController' => __DIR__ . '/../..' . '/app/Http/Controllers/GatewayController.php',
         'App\\Http\\Middleware\\AuthenticateGateway' => __DIR__ . '/../..' . '/app/Http/Middleware/AuthenticateGateway.php',
+        'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Services\\GatewayService' => __DIR__ . '/../..' . '/app/Services/GatewayService.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Brick\\Math\\BigDecimal' => __DIR__ . '/..' . '/brick/math/src/BigDecimal.php',
