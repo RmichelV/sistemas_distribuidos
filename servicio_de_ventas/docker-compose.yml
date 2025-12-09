@@ -10,6 +10,11 @@ services:
       - ./api:/var/www
     networks:
       - sd_network
+    environment:
+      - DB_HOST=sd_db_sales
+      - DB_DATABASE=sales_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=3312
     restart: unless-stopped
 
   sales_nginx:

@@ -28,9 +28,9 @@ return [
         // ==========================================
         'mysql' => [
             'driver' => 'mysql',
-            'host' => env('DB_HOST', 'sd_db_auth'),
+            'host' => env('DB_HOST', 'sd_db_sales'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'auth_db'),
+            'database' => env('DB_DATABASE', 'sales_db'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', '3312'),
             'unix_socket' => env('DB_SOCKET', ''),
@@ -47,7 +47,7 @@ return [
             // Configuración de REPLICA para lectura
             'read' => [
                 'host' => [
-                    env('DB_READ_HOST', 'sd_db_auth_replica'),
+                    env('DB_READ_HOST', 'sd_db_sales_replica'),
                 ],
             ],
             
