@@ -1,0 +1,32 @@
+services:
+  branch_api:
+    container_name: branch_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/var/www
+    networks:
+      - sd_network
+    environment:
+      - DB_HOST=sd_db_branch
+      - DB_DATABASE=sd_db_branch
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+
+  branch_nginx:
+    container_name: branch_nginx
+    image: nginx:alpine
+    ports:
+      - "8002:80"
+    volumes:
+      - ./api:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - sd_network
+    depends_on:
+      - branch_api
+
+networks:
+  sd_network:
+    external: true

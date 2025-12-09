@@ -1,0 +1,32 @@
+services:
+  inventory_api:
+    container_name: inventory_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/var/www
+    networks:
+      - sd_network
+    environment:
+      - DB_HOST=sd_db_inventory
+      - DB_DATABASE=sd_db_inventory
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+
+  inventory_nginx:
+    container_name: inventory_nginx
+    image: nginx:alpine
+    ports:
+      - "8003:80"
+    volumes:
+      - ./api:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - sd_network
+    depends_on:
+      - inventory_api
+
+networks:
+  sd_network:
+    external: true
