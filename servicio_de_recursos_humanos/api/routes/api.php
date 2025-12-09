@@ -1,61 +1,51 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\SalaryAdjustmentController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Rutas de la API REST para el servicio de autenticación y usuarios
-|
-*/
-
-// Rutas públicas de autenticación
-Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('register', [AuthController::class, 'register']);
-});
-
-// Rutas protegidas con JWT
-Route::middleware('auth:api')->group(function () {
-    
-    // Autenticación
-    Route::prefix('auth')->group(function () {
-        Route::get('me', [AuthController::class, 'me']);
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('refresh', [AuthController::class, 'refresh']);
-    });
-
-    // Gestión de usuarios
-    Route::prefix('users')->group(function () {
-        Route::get('/', [UserController::class, 'index']);           // Listar usuarios
-        Route::post('/', [UserController::class, 'store']);          // Crear usuario
-        Route::get('/{id}', [UserController::class, 'show']);        // Ver usuario
-        Route::put('/{id}', [UserController::class, 'update']);      // Actualizar usuario
-        Route::delete('/{id}', [UserController::class, 'destroy']);  // Eliminar usuario
-        Route::post('/switch-branch', [UserController::class, 'switchBranch']); // Cambiar sucursal
-    });
-
-    // Gestión de roles
-    Route::prefix('roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);           // Listar roles
-        Route::post('/', [RoleController::class, 'store']);          // Crear rol
-        Route::get('/{id}', [RoleController::class, 'show']);        // Ver rol
-        Route::put('/{id}', [RoleController::class, 'update']);      // Actualizar rol
-        Route::delete('/{id}', [RoleController::class, 'destroy']);  // Eliminar rol
-    });
-});
-
-// Ruta de health check
-Route::get('health', function () {
+// Health check
+Route::get("/health", function () {
     return response()->json([
-        'success' => true,
-        'service' => 'auth-service',
-        'status' => 'healthy',
-        'timestamp' => now()->toISOString()
+        "service" => "hr-service",
+        "status" => "healthy"
     ]);
+});
+
+// Employees
+Route::prefix("employees")->group(function () {
+    Route::get("/", [EmployeeController::class, "index"]);
+    Route::post("/", [EmployeeController::class, "store"]);
+    Route::get("/{id}", [EmployeeController::class, "show"]);
+    Route::put("/{id}", [EmployeeController::class, "update"]);
+    Route::delete("/{id}", [EmployeeController::class, "destroy"]);
+    Route::get("/branch/{branchId}", [EmployeeController::class, "getByBranch"]);
+    Route::get("/{id}/payroll", [EmployeeController::class, "getPayroll"]);
+});
+
+// Attendance
+Route::prefix("attendance")->group(function () {
+    Route::get("/", [AttendanceController::class, "index"]);
+    Route::post("/", [AttendanceController::class, "store"]);
+    Route::get("/{id}", [AttendanceController::class, "show"]);
+    Route::put("/{id}", [AttendanceController::class, "update"]);
+    Route::post("/check-in", [AttendanceController::class, "checkIn"]);
+    Route::put("/{id}/check-out", [AttendanceController::class, "checkOut"]);
+    Route::get("/employee/{employeeId}", [AttendanceController::class, "getByEmployee"]);
+    Route::get("/employee/{employeeId}/summary", [AttendanceController::class, "getSummary"]);
+});
+
+// Salary Adjustments
+Route::prefix("salary-adjustments")->group(function () {
+    Route::get("/", [SalaryAdjustmentController::class, "index"]);
+    Route::post("/", [SalaryAdjustmentController::class, "store"]);
+    Route::get("/pending", [SalaryAdjustmentController::class, "getPendingApprovals"]);
+    Route::get("/{id}", [SalaryAdjustmentController::class, "show"]);
+    Route::put("/{id}", [SalaryAdjustmentController::class, "update"]);
+    Route::delete("/{id}", [SalaryAdjustmentController::class, "destroy"]);
+    Route::put("/{id}/approve", [SalaryAdjustmentController::class, "approve"]);
+    Route::put("/{id}/mark-paid", [SalaryAdjustmentController::class, "markAsPaid"]);
+    Route::get("/employee/{employeeId}", [SalaryAdjustmentController::class, "getByEmployee"]);
+    Route::get("/employee/{employeeId}/totals", [SalaryAdjustmentController::class, "getTotalsByEmployee"]);
 });

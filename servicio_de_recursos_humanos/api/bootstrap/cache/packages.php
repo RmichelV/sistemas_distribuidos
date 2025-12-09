@@ -1,16 +1,23 @@
 <?php return array (
+  'inertiajs/inertia-laravel' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Inertia\\ServiceProvider',
+    ),
+  ),
+  'laravel/pail' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Pail\\PailServiceProvider',
+    ),
+  ),
   'laravel/sail' => 
   array (
     'providers' => 
     array (
       0 => 'Laravel\\Sail\\SailServiceProvider',
-    ),
-  ),
-  'laravel/sanctum' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     ),
   ),
   'laravel/tinker' => 
@@ -41,16 +48,11 @@
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
     ),
   ),
-  'tymon/jwt-auth' => 
+  'tightenco/ziggy' => 
   array (
-    'aliases' => 
-    array (
-      'JWTAuth' => 'Tymon\\JWTAuth\\Facades\\JWTAuth',
-      'JWTFactory' => 'Tymon\\JWTAuth\\Facades\\JWTFactory',
-    ),
     'providers' => 
     array (
-      0 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+      0 => 'Tighten\\Ziggy\\ZiggyServiceProvider',
     ),
   ),
 );
