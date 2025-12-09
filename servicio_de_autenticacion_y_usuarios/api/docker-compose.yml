@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  auth-service:
+    build: .
+    container_name: auth-service
+    environment:
+      APP_ENV: production
+      APP_NAME: "Auth Service"
+      APP_URL: http://auth-service
+      DB_CONNECTION: mysql
+      DB_HOST: sd_db_auth
+      DB_READ_HOST: sd_db_auth_replica
+      DB_PORT: 3306
+      DB_DATABASE: auth_db
+      DB_USERNAME: root
+      DB_PASSWORD: "3312"
+      JWT_SECRET: "sd_jwt_secret_2025_change_me"
+    networks:
+      - sd_network
+    restart: always
+
+networks:
+  sd_network:
+    external: true
