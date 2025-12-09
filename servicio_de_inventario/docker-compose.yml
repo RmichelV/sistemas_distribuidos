@@ -10,9 +10,9 @@ services:
       - sd_network
     environment:
       - DB_HOST=sd_db_inventory
-      - DB_DATABASE=sd_db_inventory
+      - DB_DATABASE=inventory_db
       - DB_USERNAME=root
-      - DB_PASSWORD=root
+      - DB_PASSWORD=3312
 
   inventory_nginx:
     container_name: inventory_nginx
