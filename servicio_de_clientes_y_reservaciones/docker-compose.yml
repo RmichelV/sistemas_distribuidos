@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  reservations_api:
+    container_name: reservations_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/var/www
+    networks:
+      - sd_network
+    restart: unless-stopped
+
+  reservations_nginx:
+    container_name: reservations_nginx
+    image: nginx:alpine
+    ports:
+      - "8005:80"
+    volumes:
+      - ./api:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - reservations_api
+    networks:
+      - sd_network
+    restart: unless-stopped
+
+networks:
+  sd_network:
+    external: true
