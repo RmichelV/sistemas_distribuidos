@@ -269,7 +269,30 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 Deberías ver aproximadamente 30 contenedores corriendo.
 
 ### 2. Probar el API Gateway
+#### desde thunderclient 
+POST http://localhost:8000/api/auth/login
 
+Headers:
+
+Content-Type: application/json
+Accept: application/json
+
+Body Json
+{
+  "email": "admin@ewtto.com",
+  "password": "admin123"
+}
+
+hacer correr y esto devolvera un access token
+
+el access toker que es "asdfkasjdflkasdjflk etc " copiar a auth->bearer
+
+luego podemos usar las direcciones get sin molestias 
+http://localhost:8000/api/users
+
+
+
+#### desde terminal 
 #### Login (obtener token):
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
