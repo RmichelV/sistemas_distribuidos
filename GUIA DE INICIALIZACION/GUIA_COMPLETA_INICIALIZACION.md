@@ -243,6 +243,9 @@ docker compose build
 docker compose up -d
 docker exec gateway_api composer install --no-dev --optimize-autoloader
 docker exec gateway_api php artisan key:generate
+
+docker exec gateway_api grep "^APP_KEY=" .env
+
 cd ..
 ```
 
