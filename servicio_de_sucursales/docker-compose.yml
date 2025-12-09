@@ -9,10 +9,10 @@ services:
     networks:
       - sd_network
     environment:
-      - DB_HOST=sd_db_branch
-      - DB_DATABASE=sd_db_branch
+      - DB_HOST=sd_db_branches
+      - DB_DATABASE=branches_db
       - DB_USERNAME=root
-      - DB_PASSWORD=root
+      - DB_PASSWORD=3312
 
   branch_nginx:
     container_name: branch_nginx
