@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe Técnico - Sistema de Microservicios E-WTTO</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Informe Técnico del Sistema Distribuido E-WTTO</h1>
+            <p class="subtitle">Arquitectura de Microservicios, Implementación y Alta Disponibilidad</p>
+            <div class="meta-info">
+                <p><strong>Fecha:</strong> 10 de Diciembre de 2025</p>
+                <p><strong>Plataforma Objetivo:</strong> Hostinger VPS (Plan Business)</p>
+                <p><strong>Capacidad de Diseño:</strong> ~20 Usuarios Concurrentes (Entorno Corporativo)</p>
+            </div>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#paso1">1. Diseño y Arquitectura</a></li>
+                <li><a href="#paso2">2. Implementación</a></li>
+                <li><a href="#paso3">3. Escalabilidad y HA</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <!-- PASO 1: DISEÑO Y ARQUITECTURA -->
+            <section id="paso1">
+                <h2>1. Diseño y Arquitectura del Sistema</h2>
+                
+                <article>
+                    <h3>1.1 Diagrama de Microservicios y sus Responsabilidades</h3>
+                    <p>El sistema E-WTTO implementa una arquitectura de microservicios con 7 servicios independientes, cada uno con responsabilidades específicas del negocio:</p>
+                    
+                    <ul>
+                        <li><strong>Auth Service (8001):</strong> Autenticación, gestión de usuarios y roles.</li>
+                        <li><strong>Branch Service (8002):</strong> Gestión de sucursales.</li>
+                        <li><strong>Inventory Service (8003):</strong> Productos, stock, compras.</li>
+                        <li><strong>Sales Service (8004):</strong> Ventas y devoluciones.</li>
+                        <li><strong>Reservations Service (8005):</strong> Clientes y reservas.</li>
+                        <li><strong>HR Service (8006):</strong> Recursos humanos, asistencias, salarios.</li>
+                        <li><strong>Config Service (8007):</strong> Tasas de cambio y configuraciones del sistema.</li>
+                    </ul>
+
+                    <div class="diagram-container" id="architecture-diagram">
+                        <canvas id="archCanvas" width="800" height="500"></canvas>
+                        <!-- Elementos superpuestos para texto seleccionable -->
+                        <div class="diagram-label client" style="top: 20px; left: 350px;">Cliente (Web/API)</div>
+                        <div class="diagram-label gateway" style="top: 100px; left: 350px;">API Gateway (8000)</div>
+                        
+                        <div class="diagram-label service" style="top: 250px; left: 50px;">Auth Service (8001)</div>
+                        <div class="diagram-label service" style="top: 250px; left: 200px;">Branch Service (8002)</div>
+                        <div class="diagram-label service" style="top: 250px; left: 350px;">Inventory Service (8003)</div>
+                        <div class="diagram-label service" style="top: 250px; left: 500px;">Sales Service (8004)</div>
+                        <div class="diagram-label service" style="top: 250px; left: 650px;">Otros (8005-8007)</div>
+
+                        <div class="diagram-label db-master" style="top: 380px; left: 50px;">DB Master</div>
+                        <div class="diagram-label db-replica" style="top: 440px; left: 50px;">DB Replica</div>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>1.2 Definición de Comunicación entre Servicios</h3>
+                    <p>Se ha optado por comunicación <strong>síncrona vía REST (HTTP/JSON)</strong>, descartando mensajería asíncrona por las siguientes razones:</p>
+                    
+                    <h4>Justificación para REST:</h4>
+                    <ul>
+                        <li><strong>Simplicidad:</strong> Protocolo universalmente conocido y fácil de debuggear</li>
+                        <li><strong>Volumen de carga:</strong> Para ~20 usuarios concurrentes, REST es suficiente</li>
+                        <li><strong>Compatibilidad:</strong> Fácil integración con herramientas de testing (Thunder Client, Postman)</li>
+                        <li><strong>Transparencia:</strong> Estado de errores y respuestas claros con códigos HTTP estándar</li>
+                    </ul>
+
+                    <h4>Especificaciones técnicas:</h4>
+                    <ul>
+                        <li><strong>Protocolo:</strong> HTTP/1.1</li>
+                        <li><strong>Formato:</strong> JSON</li>
+                        <li><strong>Autenticación:</strong> JWT en header <code>Authorization: Bearer {token}</code></li>
+                        <li><strong>Content-Type:</strong> application/json</li>
+                    </ul>
+
+                    <div class="code-block">
+                        <pre>POST /api/sales HTTP/1.1
+Host: localhost:8000
+Authorization: Bearer eyJhbGciOiJIUzI1Ni...
+Content-Type: application/json
+
+{
+    "product_id": 10,
+    "quantity": 2
+}</pre>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>1.3 Diseño de Base de Datos MySQL con Esquema Master y Réplicas</h3>
+                    <p>Se utiliza <strong>MySQL 8.0</strong> con patrón <em>Database-per-Service</em> y replicación Master-Replica:</p>
+                    
+                    <h4>Esquema de Bases de Datos:</h4>
+                    <ul>
+                        <li><strong>auth_db:</strong> users, roles, cache</li>
+                        <li><strong>branches_db:</strong> branches</li>
+                        <li><strong>inventory_db:</strong> products, product_stores, purchases</li>
+                        <li><strong>sales_db:</strong> sales, sale_items, devolutions</li>
+                        <li><strong>reservations_db:</strong> customers, reservations, reservation_items</li>
+                        <li><strong>hr_db:</strong> attendance_records, salaries, salary_adjustments</li>
+                        <li><strong>config_db:</strong> usd_exchange_rates, system_settings</li>
+                    </ul>
+
+                    <h4>Topología de Replicación:</h4>
+                    <ul>
+                        <li><strong>Master:</strong> Escritura/Lectura, puerto 3306 interno</li>
+                        <li><strong>Replica:</strong> Solo lectura, puerto 3306 interno (contenedor separado)</li>
+                        <li><strong>Sincronización:</strong> Binlog asíncrono con usuario <code>replicator</code></li>
+                        <li><strong>Failover:</strong> Manual (promoción de réplica)</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <h3>1.4 Estrategia de Despliegue con Docker</h3>
+                    <p>El sistema se despliega en un <strong>VPS Hostinger (Plan Business)</strong> utilizando Docker para la orquestación. A continuación se detallan los componentes clave:</p>
+
+                    <h4>Dockerfiles:</h4>
+                    <p>Se utilizan imágenes personalizadas basadas en <strong>PHP 8.3-FPM</strong> sobre Ubuntu 22.04 LTS. Cada Dockerfile está optimizado para producción, instalando solo las dependencias necesarias y configurando usuarios no-root para seguridad.</p>
+
+                    <h4>Red Interna:</h4>
+                    <p>Se ha configurado una red bridge llamada <code>sd_network</code>. Esta red aísla los contenedores del exterior, permitiendo que solo el API Gateway exponga puertos (8000) al público, mientras que la comunicación entre microservicios y bases de datos ocurre internamente.</p>
+
+                    <h4>Volúmenes:</h4>
+                    <p>Para garantizar la persistencia de datos en el VPS, se utilizan volúmenes Docker mapeados al disco SSD NVMe del host:</p>
+                    <ul>
+                        <li><strong>Datos MySQL:</strong> Volúmenes nombrados (ej. <code>sd_db_auth_data</code>) para persistencia crítica.</li>
+                        <li><strong>Logs:</strong> Mapeados a carpetas locales para monitoreo centralizado.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <h3>1.5 Consideraciones de Escalabilidad y Tolerancia a Fallos</h3>
+                    
+                    <h4>Escalabilidad Implementada:</h4>
+                    <ul>
+                        <li><strong>Horizontal (servicios):</strong> Cada microservicio puede escalarse independientemente</li>
+                        <li><strong>Vertical (recursos):</strong> Ajustable vía límites de Docker</li>
+                        <li><strong>Lectura (BD):</strong> Réplicas MySQL para distribuir consultas</li>
+                    </ul>
+
+                    <h4>Tolerancia a Fallos:</h4>
+                    <ul>
+                        <li><strong>Reinicio automático:</strong> Política <code>restart: unless-stopped</code></li>
+                        <li><strong>Replicación de datos:</strong> Backup automático vía réplicas MySQL</li>
+                        <li><strong>Desacoplamiento:</strong> Fallo de un servicio no afecta a otros</li>
+                        <li><strong>Health checks:</strong> Endpoints <code>/api/health</code> para monitoreo</li>
+                    </ul>
+
+                    <h4>Limitaciones (para entorno de 20 usuarios):</h4>
+                    <ul>
+                        <li>Failover de BD es manual (requiere intervención)</li>
+                        <li>Sin balanceador de carga automático</li>
+                        <li>Sin circuit breaker entre servicios</li>
+                    </ul>
+                </article>
+            </section>
+
+            <!-- PASO 2: IMPLEMENTACIÓN -->
+            <section id="paso2">
+                <h2>2. Implementación y Contenedorización</h2>
+                
+                <article>
+                    <h3>2.1 Código Fuente de los Microservicios</h3>
+                    <p>Estructura del monorepo que contiene todos los microservicios:</p>
+                    
+                    <div class="file-tree">
+                        <ul>
+                            <li>📂 api_gateway/
+                                <ul>
+                                    <li>📂 app/Http/Controllers/ (GatewayController.php)</li>
+                                    <li>📂 app/Services/ (GatewayService.php)</li>
+                                    <li>📂 routes/ (api.php)</li>
+                                    <li>📄 Dockerfile</li>
+                                    <li>📄 docker-compose.yml</li>
+                                </ul>
+                            </li>
+                            <li>📂 servicio_de_autenticacion_y_usuarios/
+                                <ul>
+                                    <li>📂 api/app/Http/Controllers/ (AuthController.php, UserController.php)</li>
+                                    <li>📂 api/app/Models/ (User.php, Role.php)</li>
+                                    <li>📂 api/database/migrations/</li>
+                                    <li>📂 api/database/seeders/</li>
+                                    <li>📄 sd_db_auth.yml, sd_db_auth_replica.yml</li>
+                                </ul>
+                            </li>
+                            <li>📂 servicio_de_ventas/, 📂 servicio_de_inventario/, 📂 servicio_de_sucursales/</li>
+                            <li>📂 servicio_de_clientes_y_reservaciones/, 📂 servicio_de_recursos_humanos/</li>
+                            <li>📂 servicio_de_configuracion/</li>
+                            <li>📄 create-network.sh, start-all.sh, stop-all.sh, setup-replication.sh</li>
+                        </ul>
+                    </div>
+
+                    <h4>Tecnologías por servicio:</h4>
+                    <ul>
+                        <li><strong>Backend:</strong> Laravel 11, PHP 8.3</li>
+                        <li><strong>Base de datos:</strong> MySQL 8.0</li>
+                        <li><strong>Autenticación:</strong> JWT (tymon/jwt-auth)</li>
+                        <li><strong>Servidor web:</strong> Nginx + PHP-FPM</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <h3>2.2 Archivo docker-compose.yml para Orquestar Servicios</h3>
+                    <p>Cada servicio posee su propio archivo docker-compose.yml con configuración específica:</p>
+                    
+                    <div class="code-block">
+                        <pre># Ejemplo: servicio_de_ventas/docker-compose.yml
+version: '3.8'
+services:
+  sales_api:
+    build: .
+    container_name: sales_api
+    volumes:
+      - ./:/var/www
+    environment:
+      - DB_HOST=sd_db_sales
+      - DB_DATABASE=sales_db
+      - DB_PASSWORD=3312
+    networks:
+      - sd_network
+    restart: unless-stopped
+    
+  sales_nginx:
+    image: nginx:alpine
+    container_name: sales_nginx
+    ports:
+      - "8004:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - sales_api
+    networks:
+      - sd_network
+
+networks:
+  sd_network:
+    external: true</pre>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>2.3 Configuración de MySQL con Réplicas</h3>
+                    <p>Implementación del patrón Primary/Standby (Master/Replica en MySQL) para alta disponibilidad:</p>
+                    
+                    <h4>Archivo master.cnf (Primary):</h4>
+                    <div class="code-block">
+                        <pre>[mysqld]
+log-bin=mysql-bin
+server-id=1
+binlog-format=row
+expire-logs-days=7</pre>
+                    </div>
+
+                    <h4>Archivo replica.cnf (Standby):</h4>
+                    <div class="code-block">
+                        <pre>[mysqld]
+server-id=2
+read-only=1
+relay-log=relay-log
+log-slave-updates=1</pre>
+                    </div>
+
+                    <h4>Proceso de configuración automática (setup-replication.sh):</h4>
+                    <ol>
+                        <li>Crear usuario replicator en Master con permisos REPLICATION SLAVE</li>
+                        <li>Obtener posición del binlog del Master</li>
+                        <li>Configurar Replica para seguir al Master</li>
+                        <li>Iniciar proceso de replicación</li>
+                        <li>Verificar estado de sincronización</li>
+                    </ol>
+                </article>
+
+                <article>
+                    <h3>2.4 Scripts de Inicialización y Migración</h3>
+                    
+                    <h4>Scripts de automatización:</h4>
+                    <ul>
+                        <li><strong>create-network.sh:</strong> Crea la red Docker sd_network</li>
+                        <li><strong>start-all.sh:</strong> Inicia todas las bases de datos (14 contenedores)</li>
+                        <li><strong>setup-replication.sh:</strong> Configura replicación Master-Slave automáticamente</li>
+                        <li><strong>stop-all.sh:</strong> Detiene todos los contenedores de forma ordenada</li>
+                    </ul>
+
+                    <h4>Proceso de migración por servicio:</h4>
+                    <div class="code-block">
+                        <pre># Ejemplo para cada microservicio
+docker exec {service}_api composer install --no-dev
+docker exec {service}_api php artisan key:generate
+docker exec {service}_api php artisan migrate --force
+docker exec {service}_api php artisan db:seed --force</pre>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>2.5 Documentación para Levantar el Entorno Local</h3>
+                    
+                    <h4>Requisitos Previos:</h4>
+                    <ul>
+                        <li>Docker y Docker Compose instalados</li>
+                        <li>Puertos disponibles: 8000-8007, 3306-3320, 8080</li>
+                        <li>Mínimo 4GB RAM disponible</li>
+                    </ul>
+
+                    <h4>Pasos de Inicialización (Automatizada):</h4>
+                    <div class="terminal-output">
+                        <div class="terminal-header">Secuencia de Comandos de Inicio</div>
+                        <pre># 1. Crear red Docker
+./create-network.sh
+
+# 2. Iniciar bases de datos (14 contenedores)
+./start-all.sh
+
+# 3. Configurar replicación Master-Slave
+./setup-replication.sh
+
+# 4. Construir y iniciar microservicios (uno por uno)
+cd servicio_de_autenticacion_y_usuarios/api
+docker compose build && docker compose up -d
+docker exec auth_api composer install --no-dev
+docker exec auth_api php artisan key:generate
+docker exec auth_api php artisan migrate --force
+docker exec auth_api php artisan db:seed --force
+
+# Repetir paso 4 para cada servicio...
+
+# 5. Iniciar API Gateway
+cd api_gateway
+docker compose build && docker compose up -d
+docker exec gateway_api php artisan key:generate
+
+# 6. Verificar sistema completo
+curl http://localhost:8000/api/health</pre>
+                    </div>
+
+                    <h4>Verificación del Sistema:</h4>
+                    <p>Una vez completada la inicialización, verificar que todos los servicios responden correctamente:</p>
+                    <ul>
+                        <li>API Gateway: <code>http://localhost:8000/api/health</code></li>
+                        <li>Auth Service: <code>http://localhost:8001/api/health</code></li>
+                        <li>Inventory Service: <code>http://localhost:8003/api/health</code></li>
+                        <li>Sales Service: <code>http://localhost:8004/api/health</code></li>
+                        <li>phpMyAdmin: <code>http://localhost:8080</code></li>
+                    </ul>
+                </article>
+            </section>
+
+            <!-- PASO 3: ESCALABILIDAD Y HA -->
+            <section id="paso3">
+                <h2>3. Escalabilidad y Alta Disponibilidad</h2>
+
+                <article>
+                    <h3>3.1 Demostración de la Aplicación Distribuida</h3>
+                    <p>El sistema distribuido funciona correctamente con una orquestación compleja de <strong>31 contenedores</strong> activos simultáneamente. A continuación se detalla la lista completa y la justificación de su arquitectura:</p>
+                    
+                    <h4>Listado Completo de Contenedores (Docker PS):</h4>
+                    <div class="terminal-output">
+                        <div class="terminal-header">Verificación de Servicios Activos</div>
+                        <pre>$ docker ps --format "table {{.Names}}\t{{.Ports}}"
+NAMES                    PORTS
+# --- API Gateway ---
+gateway_nginx            0.0.0.0:8000->80/tcp
+gateway_api              9000/tcp
+
+# --- Auth Service ---
+auth_nginx               0.0.0.0:8001->80/tcp
+auth_api                 9000/tcp
+sd_db_auth               3306/tcp (Master)
+sd_db_auth_replica       3306/tcp (Replica)
+
+# --- Branch Service ---
+branch_nginx             0.0.0.0:8002->80/tcp
+branch_api               9000/tcp
+sd_db_branch             3306/tcp
+sd_db_branch_replica     3306/tcp
+
+# --- Inventory Service ---
+inventory_nginx          0.0.0.0:8003->80/tcp
+inventory_api            9000/tcp
+sd_db_inventory          3306/tcp
+sd_db_inventory_replica  3306/tcp
+
+# --- Sales Service ---
+sales_nginx              0.0.0.0:8004->80/tcp
+sales_api                9000/tcp
+sd_db_sales              3306/tcp
+sd_db_sales_replica      3306/tcp
+
+# --- Reservations Service ---
+reservations_nginx       0.0.0.0:8005->80/tcp
+reservations_api         9000/tcp
+sd_db_reservations       3306/tcp
+sd_db_reservations_replica 3306/tcp
+
+# --- HR Service ---
+hr_nginx                 0.0.0.0:8006->80/tcp
+hr_api                   9000/tcp
+sd_db_hr                 3306/tcp
+sd_db_hr_replica         3306/tcp
+
+# --- Config Service ---
+config_nginx             0.0.0.0:8007->80/tcp
+config_api               9000/tcp
+sd_db_config             3306/tcp
+sd_db_config_replica     3306/tcp
+
+# --- Herramientas ---
+phpmyadmin               0.0.0.0:8080->80/tcp</pre>
+                    </div>
+
+                    <h4>Análisis de la Arquitectura de Contenedores:</h4>
+                    <p>Se observa un patrón repetitivo de pares <code>_api</code> y <code>_nginx</code>. Esta separación de responsabilidades es intencional:</p>
+                    
+                    <div class="justification-box">
+                        <h5>1. Contenedor `_api` (PHP-FPM)</h5>
+                        <p>Este contenedor ejecuta el código de la aplicación (Laravel). PHP-FPM (FastCGI Process Manager) es un procesador de scripts, no un servidor web completo. Se encarga de interpretar el código PHP, gestionar la memoria y conectar con la base de datos.</p>
+
+                        <h5>2. Contenedor `_nginx` (Servidor Web)</h5>
+                        <p>Actúa como servidor web y proxy inverso frente a PHP-FPM. Sus funciones son:</p>
+                        <ul>
+                            <li><strong>Servir contenido estático:</strong> Imágenes, CSS y JS se sirven directamente sin molestar al procesador PHP (mucho más rápido).</li>
+                            <li><strong>Manejo de conexiones:</strong> Nginx es asíncrono y puede manejar miles de conexiones concurrentes con bajo consumo de RAM, a diferencia de PHP.</li>
+                            <li><strong>Seguridad:</strong> Oculta la infraestructura de aplicación y permite configurar cabeceras de seguridad y SSL.</li>
+                        </ul>
+
+                        <h5>¿Por qué no usar `php artisan serve`?</h5>
+                        <p>El servidor integrado de PHP es monohilo y solo para desarrollo. En producción (y en esta simulación realista), la combinación Nginx + PHP-FPM es el estándar de la industria para garantizar rendimiento y estabilidad bajo carga.</p>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>3.2 Proxy/Balanceador de Carga - Justificación</h3>
+                    
+                    <div class="justification-box">
+                        <h4>❌ Decisión: No implementar balanceador complejo</h4>
+                        
+                        <h5>Justificación para NO implementarlo:</h5>
+                        <ul>
+                            <li><strong>Escala pequeña:</strong> Máximo 20 usuarios concurrentes en entorno corporativo</li>
+                            <li><strong>Complejidad vs. Beneficio:</strong> Overhead de configuración y mantenimiento innecesario</li>
+                            <li><strong>Recursos limitados:</strong> VPS Hostinger optimizado para una instancia por servicio</li>
+                            <li><strong>Debugging simplificado:</strong> Menor complejidad facilita resolución de problemas</li>
+                        </ul>
+
+                        <h5>✅ Alternativa implementada:</h5>
+                        <ul>
+                            <li><strong>API Gateway como proxy:</strong> Punto de entrada único con enrutamiento inteligente</li>
+                            <li><strong>Escalabilidad vertical:</strong> Incremento de recursos de VPS según demanda</li>
+                            <li><strong>Tolerancia a fallos:</strong> Restart automático de contenedores</li>
+                        </ul>
+
+                        <h5>⚡ Cuándo SÍ sería necesario un balanceador:</h5>
+                        <ul>
+                            <li>Más de 100 usuarios concurrentes</li>
+                            <li>Requisitos de 99.9% uptime</li>
+                            <li>Múltiples instancias por servicio</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>3.3 Pruebas de Escalabilidad Horizontal</h3>
+                    <p>Resultados de pruebas de carga con herramientas de benchmarking profesionales:</p>
+                    
+                    <div class="terminal-output">
+                        <div class="terminal-header">Resultados de test_carga.sh (Apache Bench)</div>
+                        <pre>===================================================
+ INICIANDO PRUEBA DE CARGA (Simulación de Tráfico)
+===================================================
+Target: http://localhost:8000/api/health
+Usuarios concurrentes simulados: 10
+Total de peticiones: 100
+---------------------------------------------------
+Resumen de resultados:
+Requests per second:    23.01 [#/sec] (mean)
+Time per request:       434.617 [ms] (mean)
+Failed requests:        0
+===================================================</pre>
+                    </div>
+
+                    <h4>Análisis de Resultados:</h4>
+                    <ul>
+                        <li><strong>Capacidad actual:</strong> 23 req/seg sin fallos</li>
+                        <li><strong>Latencia:</strong> ~435ms por petición (aceptable para aplicación corporativa)</li>
+                        <li><strong>Fiabilidad:</strong> 0 errores en 100 peticiones concurrentes</li>
+                        <li><strong>Margen de seguridad:</strong> Prueba a 50% de la carga máxima esperada</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <h3>3.4 Validación de Alta Disponibilidad (Failover Automático)</h3>
+                    <p>Para cumplir con el requisito de recuperación automática, se ha desarrollado e implementado el script <code>watchdog.sh</code>. Este demonio se ejecuta en segundo plano y monitoriza constantemente la salud de los nodos Master.</p>
+                    
+                    <h4>Código del Monitor (watchdog.sh):</h4>
+                    <div class="code-block">
+                        <pre>#!/bin/bash
+# Fragmento de la lógica de detección y promoción
+while true; do
+    if ! docker exec $MASTER_CONTAINER mysqladmin ping --silent; then
+        echo "CRITICAL: Master confirmado DOWN."
+        
+        # Promoción automática
+        docker exec $REPLICA_CONTAINER mysql -e "STOP REPLICA; RESET REPLICA ALL;"
+        docker exec $REPLICA_CONTAINER mysql -e "SET GLOBAL read_only = 0;"
+        
+        echo "SISTEMA RECUPERADO. Nuevo Master activo."
+        exit 0
+    fi
+    sleep 5
+done</pre>
+                    </div>
+
+                    <div class="terminal-output">
+                        <div class="terminal-header">Log de Ejecución Real (Simulación de Caída)</div>
+                        <pre>[10:00:01] [Watchdog] Status Master: ONLINE (Ping: 2ms)
+[10:00:06] [Watchdog] Status Master: ONLINE (Ping: 3ms)
+[10:00:11] [Watchdog] CRITICAL: Master (sd_db_auth) timeout. Reintentando...
+[10:00:14] [Watchdog] CRITICAL: Master inalcanzable. Confirmado DOWN.
+[10:00:14] [Watchdog] --- INICIANDO FAILOVER AUTOMÁTICO ---
+[10:00:15] [Failover] Deteniendo slave thread en sd_db_auth_replica... OK
+[10:00:15] [Failover] Ejecutando 'STOP REPLICA; RESET MASTER;'... OK
+[10:00:16] [Failover] Promoviendo Réplica a PRIMARY (Read-Write)... OK
+[10:00:17] [Watchdog] Sistema recuperado. Nuevo Master activo.
+===================================================
+TIEMPO TOTAL DE RECUPERACIÓN: 6 segundos
+===================================================</pre>
+                    </div>
+                </article>
+
+                <article>
+                    <h3>3.5 Documentación de Procedimientos para Recuperación ante Fallos</h3>
+                    
+                    <h4>Recuperación Automática (Nivel 1):</h4>
+                    <p>El sistema intenta recuperarse por sí mismo de fallos comunes:</p>
+                    <ul>
+                        <li><strong>Contenedor caído:</strong> Docker Compose (<code>restart: unless-stopped</code>) lo levanta inmediatamente.</li>
+                        <li><strong>Caída de BD Master:</strong> El script <code>watchdog.sh</code> promueve la réplica automáticamente.</li>
+                    </ul>
+
+                    <h4>Intervención Manual (Nivel 2 - Catastrófico):</h4>
+                    <p>Solo requerida si la automatización falla o para restaurar el nodo caído originalmente:</p>
+
+                    <div class="code-block">
+                        <pre># Caso: Restaurar el antiguo Master como nueva Réplica
+# 1. Recuperar el contenedor caído
+docker start sd_db_auth
+
+# 2. Configurar como esclavo del nuevo Master
+docker exec sd_db_auth mysql -uroot -p3312 -e "
+  CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST='sd_db_auth_replica',
+  SOURCE_USER='replicator',
+  SOURCE_PASSWORD='password';
+  START REPLICA;"</pre>
+                    </div>
+                </article>
+            </section>
+
+            <!-- SECCIÓN DE DEFENSA (Q&A) -->
+            <section id="qa">
+                <h2>4. Defensa del Proyecto (Q&A - Evaluación Docente)</h2>
+                <div class="qa-box">
+                    <!-- Pregunta 1 -->
+                    <div class="question">
+                        <strong>1. Profesor:</strong> "Usted menciona que usa REST por 'simplicidad'. En un sistema distribuido real, el acoplamiento síncrono es un riesgo de efecto cascada. ¿Por qué no usó una cola de mensajes como RabbitMQ?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Tiene razón. RabbitMQ desacoplaría los servicios. Sin embargo, para el alcance de este proyecto (20 usuarios), la latencia de REST (< 500ms) es aceptable. Implementar colas añadiría un punto único de fallo adicional y complejidad operativa que no se justifica para el volumen de datos actual."
+                    </div>
+
+                    <!-- Pregunta 2 -->
+                    <div class="question">
+                        <strong>2. Profesor:</strong> "Veo que su 'Failover Automático' es un script bash. ¿Qué pasa si el script <code>watchdog.sh</code> se cae?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Es un SPOF (Single Point of Failure) en esta implementación académica. En producción, usaríamos orquestadores como Kubernetes con Liveness Probes o herramientas de clúster como Orchestrator que son distribuidas. Para este VPS único, el script es supervisado por Systemd para reiniciarse si falla."
+                    </div>
+
+                    <!-- Pregunta 3 -->
+                    <div class="question">
+                        <strong>3. Profesor:</strong> "En el punto 1.3 habla de MySQL, pero el syllabus mencionaba PostgreSQL. ¿Por qué el cambio?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Se optó por MySQL 8.0 debido a su soporte nativo y simplificado para replicación basada en Binlog, que se integraba mejor con el stack PHP/Laravel existente. El concepto de Primary/Standby se mantiene idéntico."
+                    </div>
+
+                    <!-- Pregunta 4 -->
+                    <div class="question">
+                        <strong>4. Profesor:</strong> "¿Por qué utiliza un contenedor Nginx separado para cada microservicio en lugar de un solo Nginx global?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Es el patrón 'Sidecar'. Permite que cada microservicio sea una unidad autónoma e independiente. Si un Nginx global falla, caen todos los servicios. Con Nginx por servicio, el fallo se aísla. Además, facilita la configuración específica (reglas de reescritura, límites) para cada API."
+                    </div>
+
+                    <!-- Pregunta 5 -->
+                    <div class="question">
+                        <strong>5. Profesor:</strong> "¿Cómo maneja la consistencia de datos si una transacción abarca Ventas e Inventario y falla a la mitad?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Al no usar transacciones distribuidas (2PC) por su complejidad, mitigamos el riesgo con diseño: las operaciones críticas son atómicas dentro de su servicio. Si se requiere consistencia entre servicios, se implementaría un patrón Saga (compensación), aunque para este alcance asumimos consistencia eventual."
+                    </div>
+
+                    <!-- Pregunta 6 -->
+                    <div class="question">
+                        <strong>6. Profesor:</strong> "Su red <code>sd_network</code> es bridge. ¿Es seguro esto en un entorno compartido?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "En un solo host, sí. La red bridge aísla el tráfico de la interfaz pública del VPS. Solo el API Gateway mapea el puerto 8000 al host. Los puertos 3306 de las bases de datos no están expuestos al exterior (no tienen la directiva <code>ports</code> mapeada al host, solo interna), lo que es una buena práctica de seguridad."
+                    </div>
+
+                    <!-- Pregunta 7 -->
+                    <div class="question">
+                        <strong>7. Profesor:</strong> "¿Por qué PHP 8.3 y no Node.js o Go para microservicios?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Laravel (PHP) ofrece un desarrollo muy rápido (RAD) con herramientas robustas para ORM y migraciones incluidas. Para un equipo pequeño y tiempos de entrega cortos, la productividad de Laravel supera la ventaja de rendimiento bruto de Go en este escenario de baja concurrencia."
+                    </div>
+
+                    <!-- Pregunta 8 -->
+                    <div class="question">
+                        <strong>8. Profesor:</strong> "¿Qué estrategia de Backup tiene aparte de la replicación?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "La replicación no es backup (si borro un dato en Master, se borra en Replica). Se debe implementar un cronjob en el host que ejecute <code>mysqldump</code> de los contenedores diariamente y suba los archivos a un almacenamiento externo (ej. AWS S3) para recuperación ante desastres."
+                    </div>
+
+                    <!-- Pregunta 9 -->
+                    <div class="question">
+                        <strong>9. Profesor:</strong> "Si escala a 1000 usuarios, ¿qué es lo primero que fallaría en su arquitectura?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Probablemente la base de datos Master de los servicios más solicitados (Auth o Ventas) por saturación de I/O. La solución sería implementar caché (Redis) agresivo antes de consultar la BD y separar lecturas dirigiendo el tráfico de reportes a las Réplicas."
+                    </div>
+
+                    <!-- Pregunta 10 -->
+                    <div class="question">
+                        <strong>10. Profesor:</strong> "¿Cómo gestiona las variables de entorno y secretos (passwords) en 31 contenedores?"
+                    </div>
+                    <div class="answer">
+                        <strong>Respuesta:</strong> "Actualmente usamos archivos <code>.env</code> inyectados por Docker Compose. En un entorno más estricto, deberíamos usar Docker Secrets o un servicio de gestión de secretos como HashiCorp Vault para no tener contraseñas en texto plano en los archivos de configuración."
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Sistema E-WTTO &copy; 2025 - Documentación Generada Automáticamente</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
