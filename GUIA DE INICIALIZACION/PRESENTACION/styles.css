@@ -1,0 +1,284 @@
+:root {
+    --primary: #3b82f6;
+    --secondary: #1e293b;
+    --accent: #8b5cf6;
+    --text: #f1f5f9;
+    --bg: #0f172a;
+    --code-bg: #1e293b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+.reveal {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.slides {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: scale(0.8) translateY(50px);
+    transition: all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    padding: 2rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.slide.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+    z-index: 10;
+}
+
+.slide.prev {
+    transform: scale(0.9) translateY(-100%);
+    opacity: 0;
+}
+
+/* Section Headers */
+.section-header {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.section-header h1 {
+    font-size: 5rem;
+    color: white;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    margin-bottom: 1rem;
+}
+
+.section-header p {
+    font-size: 2rem;
+    color: rgba(255,255,255,0.9);
+}
+
+/* Typography */
+h2 {
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+    width: 100%;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.point-badge {
+    background: var(--accent);
+    color: white;
+    padding: 0.2rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #cbd5e1;
+}
+
+p, li {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #94a3b8;
+}
+
+/* Animations */
+.animate-up {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease-out;
+}
+
+.slide.active .animate-up {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+
+/* Layouts */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    width: 100%;
+    height: 80%;
+    align-items: center;
+}
+
+.full-width {
+    width: 80%;
+    text-align: center;
+}
+
+/* Components */
+.card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.code-block {
+    background: #000;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-family: 'Fira Code', monospace;
+    color: #a5b4fc;
+    text-align: left;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    border-left: 3px solid var(--accent);
+}
+
+.list-group {
+    list-style: none;
+    text-align: left;
+}
+
+.list-group li {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.list-group li::before {
+    content: '▹';
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+}
+
+/* Terminal Style */
+.terminal {
+    background: #1e1e1e;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    font-family: monospace;
+    text-align: left;
+}
+
+.terminal-bar {
+    background: #333;
+    padding: 5px 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.red { background: #ff5f56; }
+.yellow { background: #ffbd2e; }
+.green { background: #27c93f; }
+
+.terminal-content {
+    padding: 15px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.cmd { color: #4ade80; }
+.output { color: #94a3b8; }
+
+/* Controls */
+.controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    background: linear-gradient(to top, rgba(15, 23, 42, 1), transparent);
+}
+
+button {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.progress-container {
+    flex: 1;
+    margin: 0 2rem;
+    background: rgba(255,255,255,0.1);
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+/* Canvas */
+canvas {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}

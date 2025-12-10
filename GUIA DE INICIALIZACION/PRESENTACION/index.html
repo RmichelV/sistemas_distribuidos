@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación Técnica E-WTTO</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <!-- PORTADA -->
+            <section class="slide active" id="slide-0">
+                <div class="full-width animate-up">
+                    <h1>E-WTTO</h1>
+                    <p class="subtitle">Sistema Distribuido de Microservicios</p>
+                    <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+                        <span class="point-badge">Docker</span>
+                        <span class="point-badge">Laravel</span>
+                        <span class="point-badge">MySQL HA</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 1 -->
+            <section class="slide section-header" id="sec-1">
+                <h1 class="animate-up">PASO 1</h1>
+                <p class="animate-up delay-1">Diseño y Arquitectura</p>
+            </section>
+
+            <!-- 1.1 Diagrama -->
+            <section class="slide" id="slide-1-1">
+                <h2>1.1 Diagrama de Microservicios <span class="point-badge">Arquitectura</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <ul class="list-group">
+                            <li><strong>7 Servicios Independientes</strong></li>
+                            <li><strong>API Gateway (8000):</strong> Puerta de enlace única.</li>
+                            <li><strong>Auth Service (8001):</strong> Seguridad JWT.</li>
+                            <li><strong>Core Business:</strong> Ventas, Inventario, RRHH.</li>
+                        </ul>
+                    </div>
+                    <div class="animate-up delay-2">
+                        <canvas id="archCanvas" width="500" height="350"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1.2 Comunicación -->
+            <section class="slide" id="slide-1-2">
+                <h2>1.2 Comunicación entre Servicios <span class="point-badge">REST</span></h2>
+                <div class="content-grid">
+                    <div class="card animate-up delay-1">
+                        <h3>Síncrona (HTTP/JSON)</h3>
+                        <p>Se descarta mensajería asíncrona por simplicidad y baja latencia requerida.</p>
+                        <br>
+                        <div class="code-block">
+POST /api/sales HTTP/1.1
+Host: localhost:8000
+Authorization: Bearer eyJhbG...
+Content-Type: application/json
+                        </div>
+                    </div>
+                    <div class="animate-up delay-2">
+                        <h3>Justificación</h3>
+                        <ul class="list-group">
+                            <li>Simplicidad de debugging.</li>
+                            <li>Suficiente para ~20 usuarios.</li>
+                            <li>Compatibilidad con herramientas estándar.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1.3 Base de Datos -->
+            <section class="slide" id="slide-1-3">
+                <h2>1.3 Diseño de Base de Datos <span class="point-badge">MySQL 8.0</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <h3>Database-per-Service</h3>
+                        <ul class="list-group">
+                            <li>Aislamiento total de datos.</li>
+                            <li>14 Contenedores de BD (7 Master + 7 Replica).</li>
+                        </ul>
+                    </div>
+                    <div class="card animate-up delay-2">
+                        <h3>Topología Primary/Standby</h3>
+                        <div style="text-align: center; margin-top: 1rem;">
+                            <div style="background: #3b82f6; padding: 10px; border-radius: 5px; margin-bottom: 10px;">Master (RW)</div>
+                            <div style="font-size: 20px;">⬇️ Binlog (Async)</div>
+                            <div style="background: #64748b; padding: 10px; border-radius: 5px; margin-top: 10px;">Replica (RO)</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1.4 Despliegue -->
+            <section class="slide" id="slide-1-4">
+                <h2>1.4 Estrategia de Despliegue <span class="point-badge">Hostinger VPS</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <h3>Infraestructura</h3>
+                        <ul class="list-group">
+                            <li><strong>VPS Plan Business:</strong> 4 vCPU, 8GB RAM.</li>
+                            <li><strong>OS:</strong> Ubuntu 22.04 LTS.</li>
+                            <li><strong>Red:</strong> <code>sd_network</code> (Bridge interna).</li>
+                        </ul>
+                    </div>
+                    <div class="terminal animate-up delay-2">
+                        <div class="terminal-bar"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="terminal-content">
+                            <div class="cmd">$ docker ps | wc -l</div>
+                            <div class="output">31</div>
+                            <div class="cmd">$ docker volume ls</div>
+                            <div class="output">sd_db_auth_data<br>sd_db_sales_data<br>...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1.5 Escalabilidad -->
+            <section class="slide" id="slide-1-5">
+                <h2>1.5 Escalabilidad y Tolerancia <span class="point-badge">Teoría</span></h2>
+                <div class="full-width animate-up delay-1">
+                    <div class="card">
+                        <ul class="list-group">
+                            <li><strong>Horizontal:</strong> Servicios independientes escalables.</li>
+                            <li><strong>Vertical:</strong> Ajuste de recursos Docker (CPU/RAM).</li>
+                            <li><strong>Tolerancia:</strong> <code>restart: unless-stopped</code> y Replicación BD.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2 -->
+            <section class="slide section-header" id="sec-2">
+                <h1 class="animate-up">PASO 2</h1>
+                <p class="animate-up delay-1">Implementación</p>
+            </section>
+
+            <!-- 2.1 Código Fuente -->
+            <section class="slide" id="slide-2-1">
+                <h2>2.1 Código Fuente <span class="point-badge">Monorepo</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <h3>Estructura</h3>
+                        <div class="code-block" style="height: 300px; overflow-y: auto;">
+/SIS
+  /api_gateway
+  /servicio_auth
+  /servicio_ventas
+  /servicio_inventario
+  ...
+  docker-compose.yml
+  start-all.sh
+                        </div>
+                    </div>
+                    <div class="animate-up delay-2">
+                        <h3>Stack Tecnológico</h3>
+                        <ul class="list-group">
+                            <li>PHP 8.3 (FPM)</li>
+                            <li>Laravel 11 Framework</li>
+                            <li>Nginx (Sidecar)</li>
+                            <li>JWT Auth</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2.2 Docker Compose -->
+            <section class="slide" id="slide-2-2">
+                <h2>2.2 Orquestación <span class="point-badge">Docker Compose</span></h2>
+                <div class="full-width animate-up delay-1">
+                    <div class="code-block">
+services:
+  sales_api:
+    image: sis/sales:latest
+    environment:
+      - DB_HOST=sd_db_sales
+    networks:
+      - sd_network
+
+  sales_nginx:
+    image: nginx:alpine
+    ports:
+      - "8004:80"
+    depends_on:
+      - sales_api
+                    </div>
+                    <p style="margin-top: 1rem;">Cada servicio tiene su propio <code>docker-compose.yml</code> para modularidad.</p>
+                </div>
+            </section>
+
+            <!-- 2.3 Config MySQL -->
+            <section class="slide" id="slide-2-3">
+                <h2>2.3 Configuración Réplicas <span class="point-badge">my.cnf</span></h2>
+                <div class="content-grid">
+                    <div class="card animate-up delay-1">
+                        <h3>Master (Primary)</h3>
+                        <div class="code-block">
+[mysqld]
+server-id=1
+log-bin=mysql-bin
+binlog-format=row
+                        </div>
+                    </div>
+                    <div class="card animate-up delay-2">
+                        <h3>Replica (Standby)</h3>
+                        <div class="code-block">
+[mysqld]
+server-id=2
+read-only=1
+relay-log=relay-log
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2.4 Scripts -->
+            <section class="slide" id="slide-2-4">
+                <h2>2.4 Automatización <span class="point-badge">Bash Scripts</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <ul class="list-group">
+                            <li><code>create-network.sh</code>: Prepara red bridge.</li>
+                            <li><code>start-all.sh</code>: Levanta 14 BDs.</li>
+                            <li><code>setup-replication.sh</code>: Configura Master/Slave automáticamente.</li>
+                        </ul>
+                    </div>
+                    <div class="terminal animate-up delay-2">
+                        <div class="terminal-bar"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="terminal-content">
+                            <div class="cmd">./setup-replication.sh</div>
+                            <div class="output">Configuring auth_db... OK</div>
+                            <div class="output">Configuring sales_db... OK</div>
+                            <div class="output">All replicas synced.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2.5 Inicialización -->
+            <section class="slide" id="slide-2-5">
+                <h2>2.5 Inicialización Local <span class="point-badge">How-To</span></h2>
+                <div class="full-width animate-up delay-1">
+                    <div class="code-block">
+# 1. Red y BDs
+./create-network.sh && ./start-all.sh
+
+# 2. Replicación
+./setup-replication.sh
+
+# 3. Servicios (Ejemplo Auth)
+cd servicio_auth
+docker compose up -d
+docker exec auth_api php artisan migrate --force
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3 -->
+            <section class="slide section-header" id="sec-3">
+                <h1 class="animate-up">PASO 3</h1>
+                <p class="animate-up delay-1">Escalabilidad y HA</p>
+            </section>
+
+            <!-- 3.1 Demostración -->
+            <section class="slide" id="slide-3-1">
+                <h2>3.1 Demostración <span class="point-badge">31 Contenedores</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <h3>Arquitectura Sidecar</h3>
+                        <p>Separación de <strong>PHP-FPM</strong> (Procesamiento) y <strong>Nginx</strong> (Web Server) para rendimiento y estabilidad.</p>
+                    </div>
+                    <div class="terminal animate-up delay-2">
+                        <div class="terminal-bar"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="terminal-content" style="font-size: 0.7rem;">
+                            NAMES               PORTS<br>
+                            gateway_nginx       0.0.0.0:8000->80/tcp<br>
+                            auth_nginx          0.0.0.0:8001->80/tcp<br>
+                            sd_db_auth          3306/tcp<br>
+                            sd_db_auth_replica  3306/tcp<br>
+                            ... (Total 31)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3.2 Balanceador -->
+            <section class="slide" id="slide-3-2">
+                <h2>3.2 Balanceador de Carga <span class="point-badge">Justificación</span></h2>
+                <div class="content-grid">
+                    <div class="card animate-up delay-1" style="border-color: var(--danger);">
+                        <h3 style="color: var(--danger);">❌ No Implementado</h3>
+                        <p>Para 20 usuarios, un LB añade complejidad innecesaria (SPOF, configuración) sin beneficio real.</p>
+                    </div>
+                    <div class="card animate-up delay-2" style="border-color: var(--success);">
+                        <h3 style="color: var(--success);">✅ Alternativa</h3>
+                        <p>API Gateway como punto de entrada único y escalabilidad vertical del VPS.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3.3 Pruebas Carga -->
+            <section class="slide" id="slide-3-3">
+                <h2>3.3 Pruebas de Carga <span class="point-badge">Apache Bench</span></h2>
+                <div class="full-width animate-up delay-1">
+                    <div class="terminal">
+                        <div class="terminal-bar"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="terminal-content">
+                            <div class="cmd">$ ab -n 100 -c 10 http://localhost:8000/api/health</div>
+                            <div class="output">
+                                Concurrency Level:      10<br>
+                                Time taken for tests:   4.346 seconds<br>
+                                Requests per second:    23.01 [#/sec]<br>
+                                Failed requests:        0
+                            </div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; color: var(--success);">Resultado: 0 Fallos, Latencia aceptable.</p>
+                </div>
+            </section>
+
+            <!-- 3.4 Failover -->
+            <section class="slide" id="slide-3-4">
+                <h2>3.4 Failover Automático <span class="point-badge">Watchdog</span></h2>
+                <div class="content-grid">
+                    <div class="animate-up delay-1">
+                        <h3>Script <code>watchdog.sh</code></h3>
+                        <ul class="list-group">
+                            <li>Monitoriza Master cada 5s.</li>
+                            <li>Detecta caída (Ping timeout).</li>
+                            <li>Promueve Réplica automáticamente.</li>
+                        </ul>
+                    </div>
+                    <div class="terminal animate-up delay-2">
+                        <div class="terminal-content" style="font-size: 0.8rem;">
+                            [Watchdog] CRITICAL: Master DOWN.<br>
+                            [Failover] STOP REPLICA... OK<br>
+                            [Failover] RESET MASTER... OK<br>
+                            [Failover] SET read_only=0... OK<br>
+                            [Watchdog] SISTEMA RECUPERADO.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3.5 Recuperación -->
+            <section class="slide" id="slide-3-5">
+                <h2>3.5 Recuperación de Fallos <span class="point-badge">Procedimientos</span></h2>
+                <div class="content-grid">
+                    <div class="card animate-up delay-1">
+                        <h3>Nivel 1: Automático</h3>
+                        <p>Docker Restart Policy & Watchdog Script.</p>
+                    </div>
+                    <div class="card animate-up delay-2">
+                        <h3>Nivel 2: Manual</h3>
+                        <div class="code-block">
+# Restaurar nodo caído como esclavo
+docker exec db_old_master mysql -e "
+  CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST='new_master';
+  START REPLICA;"
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Q&A -->
+            <section class="slide" id="slide-qa">
+                <h2>Defensa del Proyecto <span class="point-badge">Q&A</span></h2>
+                <div class="full-width animate-up delay-1">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="card" style="font-size: 0.9rem;">
+                            <strong style="color: var(--primary);">¿Por qué no RabbitMQ?</strong>
+                            <p>Latencia REST aceptable (<500ms). Colas añaden complejidad operativa injustificada para 20 usuarios.</p>
+                        </div>
+                        <div class="card" style="font-size: 0.9rem;">
+                            <strong style="color: var(--primary);">¿SPOF en Watchdog?</strong>
+                            <p>Sí, es una limitación académica. En producción usaríamos Orchestrator o Kubernetes Liveness Probes.</p>
+                        </div>
+                        <div class="card" style="font-size: 0.9rem;">
+                            <strong style="color: var(--primary);">¿Seguridad Bridge?</strong>
+                            <p>Seguro en host único. Puertos de BD (3306) no expuestos al exterior, solo red interna.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FIN -->
+            <section class="slide" id="slide-end">
+                <div class="full-width animate-up">
+                    <h1>GRACIAS</h1>
+                    <p>Sistema Distribuido E-WTTO</p>
+                </div>
+            </section>
+
+        </div>
+
+        <div class="controls">
+            <button id="prevBtn">❮ Anterior</button>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+            <button id="nextBtn">Siguiente ❯</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
